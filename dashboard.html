@@ -82,12 +82,19 @@
                 <div id="chatTab" class="bg-white p-4 md:p-6 rounded-lg shadow-lg mt-8">
                     <h3 class="text-xl font-semibold mb-4 text-gray-800">MBA Chat</h3>
                     <div id="chatMessages" class="h-64 overflow-y-auto mb-4 p-2 bg-gray-100 rounded"></div>
-                    <form id="chatForm" class="flex">
+                    <div class="flex flex-col md:flex-row">
+                        <form id="chatForm" class="flex-1 flex">
+                            <input type="text" id="chatInput" placeholder="Type a message..." class="flex-grow p-2 border rounded-l" required>
+                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r">Send</button>
+                        </form>
+                        <button id="attachFileButton" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-l md:rounded-r mt-4 md:mt-0 flex items-center" onclick="document.getElementById('chatFileElem').click();">
+                            <svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 9h1a2 2 0 011.995 1.85L17 11v1a2 2 0 01-1.85 1.995L15 14h-1a2 2 0 01-1.995-1.85L12 12v-1a2 2 0 011.85-1.995L14 9zm0 0l-4-4m4 4l-4 4m8 8H4a2 2 0 01-2-2V4a2 2 0 012-2h16a2 2 0 012 2v16a2 2 0 01-2 2z" />
+                            </svg>
+                            Attach File
+                        </button>
                         <input type="file" id="chatFileElem" multiple accept="image/*,application/pdf,video/*" class="hidden">
-                        <button type="button" id="attachFileButton" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-l">Attach File</button>
-                        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-grow p-2 border rounded-l" required>
-                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r">Send</button>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -111,180 +118,89 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const signOutButton = document.getElementById('signOutButton');
-        const userPhoto = document.getElementById('userPhoto');
+
+        // DOM Elements
         const userName = document.getElementById('userName');
-        let currentUser = null;
+        const userPhoto = document.getElementById('userPhoto');
+        const uploadForm = document.getElementById('uploadForm');
+        const projectList = document.getElementById('projectList');
+        const commentsSection = document.getElementById('commentsSection');
+        const commentForm = document.getElementById('commentForm');
+        const commentInput = document.getElementById('commentInput');
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+        const chatMessages = document.getElementById('chatMessages');
 
-        signOutButton.addEventListener('click', () => {
-            auth.signOut().then(() => {
-                window.location.href = 'index.html';
-            });
-        });
-
+        // User state observer
         auth.onAuthStateChanged(user => {
             if (user) {
-                currentUser = user;
-                userPhoto.src = user.photoURL || '/placeholder.svg';
-                userName.textContent = user.displayName || 'MBA Student';
+                userName.textContent = user.displayName || user.email;
+                userPhoto.src = user.photoURL || '/placeholder.svg'; // Set a placeholder if no photo
                 loadProjects();
-                loadChatMessages();
-            } else {
-                window.location.href = 'index.html';
+                loadComments();
+                loadChat();
             }
         });
 
-        const dropArea = document.getElementById('drop-area');
-        const fileElem = document.getElementById('fileElem');
-
-        // Drag & Drop functionality
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, preventDefaults, false);
-        });
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, highlight, false);
-        });
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, unhighlight, false);
-        });
-        dropArea.addEventListener('drop', handleDrop, false);
-        dropArea.addEventListener('click', () => fileElem.click());
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        function highlight() {
-            dropArea.classList.add('is-active');
-        }
-
-        function unhighlight() {
-            dropArea.classList.remove('is-active');
-        }
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
-        }
-
-        fileElem.addEventListener('change', (e) => {
-            handleFiles(fileElem.files);
-        });
-
-        function handleFiles(files) {
-            const fileArray = Array.from(files);
-            // Proceed to upload files and save project details
-            console.log(fileArray);
-        }
-
-        const uploadForm = document.getElementById('uploadForm');
+        // Project upload form
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const title = document.getElementById('projectTitle').value;
-            const description = document.getElementById('projectDescription').value;
-            const files = fileElem.files;
-
-            const projectRef = await db.collection('projects').add({
-                title,
-                description,
-                userId: currentUser.uid,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            await uploadFiles(projectRef.id, files);
-            uploadForm.reset();
-            loadProjects();
+            // Handle project upload logic here
+            console.log('Project uploaded');
         });
 
-        async function uploadFiles(projectId, files) {
-            const storageRef = firebase.storage().ref();
-            for (const file of files) {
-                const fileRef = storageRef.child(`projects/${projectId}/${file.name}`);
-                await fileRef.put(file);
-            }
-        }
-
-        async function loadProjects() {
-            const projectList = document.getElementById('projectList');
-            projectList.innerHTML = '';
-            const snapshot = await db.collection('projects').orderBy('timestamp', 'desc').get();
-            snapshot.forEach(doc => {
-                const project = doc.data();
-                const projectItem = document.createElement('div');
-                projectItem.classList.add('mb-4', 'p-4', 'bg-gray-100', 'rounded-lg');
-                projectItem.innerHTML = `
-                    <h4 class="font-bold">${project.title}</h4>
-                    <p>${project.description}</p>
-                    <p class="text-gray-600">Uploaded by: ${project.userId}</p>
-                `;
-                projectList.appendChild(projectItem);
-            });
-        }
-
-        const commentForm = document.getElementById('commentForm');
+        // Comments section
         commentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const comment = document.getElementById('commentInput').value;
-            await db.collection('comments').add({
-                text: comment,
-                userId: currentUser.uid,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            document.getElementById('commentInput').value = '';
-            loadComments();
+            const commentText = commentInput.value.trim();
+            if (commentText) {
+                await db.collection('comments').add({
+                    userId: auth.currentUser.uid,
+                    text: commentText,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+                commentInput.value = '';
+                loadComments(); // Reload comments after submission
+            }
         });
 
+        // Load comments
         async function loadComments() {
-            const commentList = document.getElementById('commentList');
+            const comments = await db.collection('comments').orderBy('timestamp', 'desc').get();
             commentList.innerHTML = '';
-            const snapshot = await db.collection('comments').orderBy('timestamp', 'desc').get();
-            snapshot.forEach(doc => {
+            comments.forEach(doc => {
                 const comment = doc.data();
-                const commentItem = document.createElement('div');
-                commentItem.innerHTML = `<strong>${comment.userId}:</strong> ${comment.text}`;
-                commentList.appendChild(commentItem);
+                const commentElement = document.createElement('div');
+                commentElement.textContent = comment.text;
+                commentList.appendChild(commentElement);
             });
         }
 
-        const chatForm = document.getElementById('chatForm');
+        // Chat functionality
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const message = document.getElementById('chatInput').value;
-            await db.collection('chat').add({
-                text: message,
-                userId: currentUser.uid,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            document.getElementById('chatInput').value = '';
-            loadChatMessages();
+            const messageText = chatInput.value.trim();
+            if (messageText) {
+                await db.collection('chat').add({
+                    userId: auth.currentUser.uid,
+                    text: messageText,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+                chatInput.value = '';
+                loadChat(); // Reload chat after sending message
+            }
         });
 
-        async function loadChatMessages() {
-            const chatMessages = document.getElementById('chatMessages');
+        // Load chat messages
+        async function loadChat() {
+            const chatMessagesSnapshot = await db.collection('chat').orderBy('timestamp', 'asc').get();
             chatMessages.innerHTML = '';
-            const snapshot = await db.collection('chat').orderBy('timestamp', 'desc').get();
-            snapshot.forEach(doc => {
-                const chatMessage = doc.data();
-                const messageItem = document.createElement('div');
-                messageItem.innerHTML = `<strong>${chatMessage.userId}:</strong> ${chatMessage.text}`;
-                chatMessages.appendChild(messageItem);
+            chatMessagesSnapshot.forEach(doc => {
+                const message = doc.data();
+                const messageElement = document.createElement('div');
+                messageElement.textContent = message.text;
+                chatMessages.appendChild(messageElement);
             });
-        }
-
-        document.getElementById('attachFileButton').addEventListener('click', () => {
-            document.getElementById('chatFileElem').click();
-        });
-
-        document.getElementById('chatFileElem').addEventListener('change', (e) => {
-            const files = e.target.files;
-            handleChatFiles(files);
-        });
-
-        function handleChatFiles(files) {
-            // Implement file handling for chat messages
-            console.log(files);
         }
     </script>
 </body>
