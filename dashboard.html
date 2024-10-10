@@ -58,7 +58,7 @@
                     <h3 class="text-xl font-semibold mb-4 text-gray-800">Upload a New Project</h3>
                     <input type="text" id="projectTitle" placeholder="Project Title" class="w-full p-2 mb-4 border rounded" required>
                     <textarea id="projectDescription" placeholder="Project Description" class="w-full p-2 mb-4 border rounded" required></textarea>
-                    <div id="drop-area" class="file-drop-area" role="button" aria-label="Drag and drop files here or click to select files">
+                    <div id="drop-area" class="file-drop-area">
                         <p>Drag & drop files here or click to select files</p>
                         <input type="file" id="fileElem" multiple accept="image/*,application/pdf,video/*" class="hidden">
                     </div>
@@ -69,32 +69,15 @@
                     <h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>
                     <!-- Projects will be dynamically added here -->
                 </div>
-
-                <div id="commentsSection" class="bg-white p-4 md:p-6 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Comments</h3>
-                    <div id="commentList"></div>
-                    <form id="commentForm" class="flex mt-4">
-                        <input type="text" id="commentInput" placeholder="Add a comment..." class="flex-grow p-2 border rounded-l" required>
-                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r">Comment</button>
-                    </form>
-                </div>
-
-                <div id="chatTab" class="bg-white p-4 md:p-6 rounded-lg shadow-lg mt-8">
+            </div>
+            <div>
+                <div id="chatTab" class="bg-white p-4 md:p-6 rounded-lg shadow-lg">
                     <h3 class="text-xl font-semibold mb-4 text-gray-800">MBA Chat</h3>
                     <div id="chatMessages" class="h-64 overflow-y-auto mb-4 p-2 bg-gray-100 rounded"></div>
-                    <div class="flex flex-col md:flex-row">
-                        <form id="chatForm" class="flex-1 flex">
-                            <input type="text" id="chatInput" placeholder="Type a message..." class="flex-grow p-2 border rounded-l" required>
-                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r">Send</button>
-                        </form>
-                        <button id="attachFileButton" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-l md:rounded-r mt-4 md:mt-0 flex items-center" onclick="document.getElementById('chatFileElem').click();">
-                            <svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 9h1a2 2 0 011.995 1.85L17 11v1a2 2 0 01-1.85 1.995L15 14h-1a2 2 0 01-1.995-1.85L12 12v-1a2 2 0 011.85-1.995L14 9zm0 0l-4-4m4 4l-4 4m8 8H4a2 2 0 01-2-2V4a2 2 0 012-2h16a2 2 0 012 2v16a2 2 0 01-2 2z" />
-                            </svg>
-                            Attach File
-                        </button>
-                        <input type="file" id="chatFileElem" multiple accept="image/*,application/pdf,video/*" class="hidden">
-                    </div>
+                    <form id="chatForm" class="flex">
+                        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-grow p-2 border rounded-l" required>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r">Send</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -105,101 +88,199 @@
     </footer>
 
     <script>
-        // Initialize Firebase
+        // Initialize Firebase (replace with your own config)
         const firebaseConfig = {
-            apiKey: "AIzaSyCq_7veQgwnqAG0NrqulIlpwPRc3YphhWY",
-            authDomain: "chatting-app-288b2.firebaseapp.com",
-            projectId: "chatting-app-288b2",
-            storageBucket: "chatting-app-288b2.appspot.com",
-            messagingSenderId: "17814759833",
-            appId: "1:17814759833:web:647a3845c72290b0810b08",
-            measurementId: "G-D174VGEPCM"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
         firebase.initializeApp(firebaseConfig);
+
         const auth = firebase.auth();
         const db = firebase.firestore();
-
-        // DOM Elements
-        const userName = document.getElementById('userName');
+        const signOutButton = document.getElementById('signOutButton');
         const userPhoto = document.getElementById('userPhoto');
-        const uploadForm = document.getElementById('uploadForm');
-        const projectList = document.getElementById('projectList');
-        const commentsSection = document.getElementById('commentsSection');
-        const commentForm = document.getElementById('commentForm');
-        const commentInput = document.getElementById('commentInput');
-        const chatForm = document.getElementById('chatForm');
-        const chatInput = document.getElementById('chatInput');
-        const chatMessages = document.getElementById('chatMessages');
+        const userName = document.getElementById('userName');
+        let currentUser = null;
 
-        // User state observer
+        signOutButton.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                window.location.href = 'index.html';
+            });
+        });
+
         auth.onAuthStateChanged(user => {
             if (user) {
-                userName.textContent = user.displayName || user.email;
-                userPhoto.src = user.photoURL || '/placeholder.svg'; // Set a placeholder if no photo
+                currentUser = user;
+                userPhoto.src = user.photoURL || '/placeholder.svg';
+                userName.textContent = user.displayName || 'MBA Student';
                 loadProjects();
-                loadComments();
-                loadChat();
+                loadChatMessages();
+            } else {
+                window.location.href = 'index.html';
             }
         });
 
-        // Project upload form
-        uploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            // Handle project upload logic here
-            console.log('Project uploaded');
+        const dropArea = document.getElementById('drop-area');
+        const fileElem = document.getElementById('fileElem');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            
+            dropArea.addEventListener(eventName, preventDefaults, false);
         });
 
-        // Comments section
-        commentForm.addEventListener('submit', async (e) => {
+        function preventDefaults(e) {
             e.preventDefault();
-            const commentText = commentInput.value.trim();
-            if (commentText) {
-                await db.collection('comments').add({
-                    userId: auth.currentUser.uid,
-                    text: commentText,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                });
-                commentInput.value = '';
-                loadComments(); // Reload comments after submission
-            }
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
         });
 
-        // Load comments
-        async function loadComments() {
-            const comments = await db.collection('comments').orderBy('timestamp', 'desc').get();
-            commentList.innerHTML = '';
-            comments.forEach(doc => {
-                const comment = doc.data();
-                const commentElement = document.createElement('div');
-                commentElement.textContent = comment.text;
-                commentList.appendChild(commentElement);
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropArea.classList.add('is-active');
+        }
+
+        function unhighlight(e) {
+            dropArea.classList.remove('is-active');
+        }
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            ([...files]).forEach(uploadFile);
+        }
+
+        function uploadFile(file) {
+            // Simulate file upload
+            console.log(`Uploading file: ${file.name}`);
+        }
+
+        dropArea.addEventListener('click', () => fileElem.click());
+        fileElem.addEventListener('change', () => {
+            handleFiles(fileElem.files);
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('projectTitle').value;
+            const description = document.getElementById('projectDescription').value;
+            addProject(title, description);
+            this.reset();
+        });
+
+        document.getElementById('chatForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const message = document.getElementById('chatInput').value;
+            addChatMessage(currentUser.displayName, message);
+            this.reset();
+        });
+
+        function addProject(title, description) {
+            db.collection('projects').add({
+                title: title,
+                description: description,
+                userId: currentUser.uid,
+                userName: currentUser.displayName,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                loadProjects();
             });
         }
 
-        // Chat functionality
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const messageText = chatInput.value.trim();
-            if (messageText) {
-                await db.collection('chat').add({
-                    userId: auth.currentUser.uid,
-                    text: messageText,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        function loadProjects() {
+            const projectList = document.getElementById('projectList');
+            projectList.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>';
+            
+            db.collection('projects').orderBy('createdAt', 'desc').limit(5).get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const project = doc.data();
+                    const projectElement = document.createElement('div');
+                    projectElement.className = 'bg-gray-100 p-4 rounded-lg mb-4 animate-fadeIn';
+                    projectElement.innerHTML = `
+                        <h4 class="text-lg font-semibold text-gray-800">${project.title}</h4>
+                        <p class="text-gray-600 mb-2">${project.description}</p>
+                        <p class="text-sm text-gray-500">Posted by ${project.userName}</p>
+                        <div class="mt-2">
+                            <textarea class="w-full p-2 border rounded" placeholder="Add a comment"></textarea>
+                            <button onclick="addComment('${doc.id}')" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded">Comment</button>
+                        </div>
+                        <div class="comments mt-4"></div>
+                    `;
+                    projectList.appendChild(projectElement);
+                    loadComments(doc.id, projectElement.querySelector('.comments'));
                 });
-                chatInput.value = '';
-                loadChat(); // Reload chat after sending message
-            }
-        });
+            });
+        }
 
-        // Load chat messages
-        async function loadChat() {
-            const chatMessagesSnapshot = await db.collection('chat').orderBy('timestamp', 'asc').get();
+        function addComment(projectId) {
+            const projectElement = document.querySelector(`[data-project-id="${projectId}"]`);
+            const commentText = projectElement.querySelector('textarea').value;
+            
+            db.collection('projects').doc(projectId).collection('comments').add({
+                text: commentText,
+                userId: currentUser.uid,
+                userName: currentUser.displayName,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                projectElement.querySelector('textarea').value = '';
+                loadComments(projectId, projectElement.querySelector('.comments'));
+            });
+        }
+
+        function loadComments(projectId, commentsElement) {
+            commentsElement.innerHTML = '';
+            db.collection('projects').doc(projectId).collection('comments').orderBy('createdAt').get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const comment = doc.data();
+                    const commentElement = document.createElement('div');
+                    commentElement.className = 'bg-white p-2 rounded mt-2';
+                    commentElement.innerHTML = `
+                        <p class="text-sm"><strong>${comment.userName}:</strong> ${comment.text}</p>
+                    `;
+                    commentsElement.appendChild(commentElement);
+                });
+            });
+        }
+
+        function addChatMessage(userName, message) {
+            db.collection('chat').add({
+                userName: userName,
+                message: message,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                loadChatMessages();
+            });
+        }
+
+        function loadChatMessages() {
+            const chatMessages = document.getElementById('chatMessages');
             chatMessages.innerHTML = '';
-            chatMessagesSnapshot.forEach(doc => {
-                const message = doc.data();
-                const messageElement = document.createElement('div');
-                messageElement.textContent = message.text;
-                chatMessages.appendChild(messageElement);
+            db.collection('chat').orderBy('createdAt').limit(50).get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const message = doc.data();
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'mb-2';
+                    messageElement.innerHTML = `
+                        <strong>${message.userName}:</strong> ${message.message}
+                    `;
+                    chatMessages.appendChild(messageElement);
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             });
         }
     </script>
