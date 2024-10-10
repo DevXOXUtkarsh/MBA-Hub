@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBA Hub Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-out;
+        }
+        .file-drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 20px;
+            width: 100%;
+            font-family: sans-serif;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .file-drop-area.is-active {
+            background-color: #f7fafc;
+            border-color: #4299e1;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 p-4 md:p-8">
+    <header class="mb-8">
+        <nav class="flex justify-between items-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-700 animate-fadeIn">MBA Hub Dashboard</h1>
+            <button id="signOutButton" class="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition duration-300">Sign Out</button>
+        </nav>
+    </header>
+
+    <main id="mainContent" class="animate-fadeIn">
+        <div class="bg-white p-4 md:p-6 rounded-lg shadow-lg mb-8">
+            <div class="flex items-center mb-4">
+                <img id="userPhoto" src="/placeholder.svg" alt="Profile" class="w-12 h-12 md:w-16 md:h-16 rounded-full mr-4">
+                <div>
+                    <h2 id="userName" class="text-xl md:text-2xl font-semibold text-gray-800">Loading...</h2>
+                    <p class="text-gray-600">Welcome to your MBA Hub dashboard!</p>
+                </div>
+            </div>
+            <p class="text-gray-700">
+                Share your projects, PDFs, pictures, and videos with your fellow MBA students. Collaborate and innovate together!
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            <div class="col-span-1 md:col-span-2">
+                <form id="uploadForm" class="bg-white p-4 md:p-6 rounded-lg shadow-lg mb-8">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Upload a New Project</h3>
+                    <input type="text" id="projectTitle" placeholder="Project Title" class="w-full p-2 mb-4 border rounded" required>
+                    <textarea id="projectDescription" placeholder="Project Description" class="w-full p-2 mb-4 border rounded" required></textarea>
+                    <div id="drop-area" class="file-drop-area">
+                        <p>Drag & drop files here or click to select files</p>
+                        <input type="file" id="fileElem" multiple accept="image/*,application/pdf,video/*" class="hidden">
+                    </div>
+                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 transition duration-300 mt-4">Upload Project</button>
+                </form>
+
+                <div id="projectList" class="bg-white p-4 md:p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>
+                    <!-- Projects will be dynamically added here -->
+                </div>
+            </div>
+            <div>
+                <div id="chatTab" class="bg-white p-4 md:p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">MBA Chat</h3>
+                    <div id="chatMessages" class="h-64 overflow-y-auto mb-4 p-2 bg-gray-100 rounded"></div>
+                    <form id="chatForm" class="flex">
+                        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-grow p-2 border rounded-l" required>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-8 text-center text-gray-600">
+        <p>&copy; 2024 Anamika Ranjan. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Initialize Firebase (replace with your own config)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const signOutButton = document.getElementById('signOutButton');
+        const userPhoto = document.getElementById('userPhoto');
+        const userName = document.getElementById('userName');
+        let currentUser = null;
+
+        signOutButton.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                window.location.href = 'index.html';
+            });
+        });
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                userPhoto.src = user.photoURL || '/placeholder.svg';
+                userName.textContent = user.displayName || 'MBA Student';
+                loadProjects();
+                loadChatMessages();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        const dropArea = document.getElementById('drop-area');
+        const fileElem = document.getElementById('fileElem');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropArea.classList.add('is-active');
+        }
+
+        function unhighlight(e) {
+            dropArea.classList.remove('is-active');
+        }
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            ([...files]).forEach(uploadFile);
+        }
+
+        function uploadFile(file) {
+            // Simulate file upload
+            console.log(`Uploading file: ${file.name}`);
+        }
+
+        dropArea.addEventListener('click', () => fileElem.click());
+        fileElem.addEventListener('change', () => {
+            handleFiles(fileElem.files);
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('projectTitle').value;
+            const description = document.getElementById('projectDescription').value;
+            addProject(title, description);
+            this.reset();
+        });
+
+        document.getElementById('chatForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const message = document.getElementById('chatInput').value;
+            addChatMessage(currentUser.displayName, message);
+            this.reset();
+        });
+
+        function addProject(title, description) {
+            db.collection('projects').add({
+                title: title,
+                description: description,
+                userId: currentUser.uid,
+                userName: currentUser.displayName,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                loadProjects();
+            });
+        }
+
+        function loadProjects() {
+            const projectList = document.getElementById('projectList');
+            projectList.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>';
+            
+            db.collection('projects').orderBy('createdAt', 'desc').limit(5).get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const project = doc.data();
+                    const projectElement = document.createElement('div');
+                    projectElement.className = 'bg-gray-100 p-4 rounded-lg mb-4 animate-fadeIn';
+                    projectElement.innerHTML = `
+                        <h4 class="text-lg font-semibold text-gray-800">${project.title}</h4>
+                        <p class="text-gray-600 mb-2">${project.description}</p>
+                        <p class="text-sm text-gray-500">Posted by ${project.userName}</p>
+                        <div class="mt-2">
+                            <textarea class="w-full p-2 border rounded" placeholder="Add a comment"></textarea>
+                            <button onclick="addComment('${doc.id}')" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded">Comment</button>
+                        </div>
+                        <div class="comments mt-4"></div>
+                    `;
+                    projectList.appendChild(projectElement);
+                    loadComments(doc.id, projectElement.querySelector('.comments'));
+                });
+            });
+        }
+
+        function addComment(projectId) {
+            const projectElement = document.querySelector(`[data-project-id="${projectId}"]`);
+            const commentText = projectElement.querySelector('textarea').value;
+            
+            db.collection('projects').doc(projectId).collection('comments').add({
+                text: commentText,
+                userId: currentUser.uid,
+                userName: currentUser.displayName,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                projectElement.querySelector('textarea').value = '';
+                loadComments(projectId, projectElement.querySelector('.comments'));
+            });
+        }
+
+        function loadComments(projectId, commentsElement) {
+            commentsElement.innerHTML = '';
+            db.collection('projects').doc(projectId).collection('comments').orderBy('createdAt').get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const comment = doc.data();
+                    const commentElement = document.createElement('div');
+                    commentElement.className = 'bg-white p-2 rounded mt-2';
+                    commentElement.innerHTML = `
+                        <p class="text-sm"><strong>${comment.userName}:</strong> ${comment.text}</p>
+                    `;
+                    commentsElement.appendChild(commentElement);
+                });
+            });
+        }
+
+        function addChatMessage(userName, message) {
+            db.collection('chat').add({
+                userName: userName,
+                message: message,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                loadChatMessages();
+            });
+        }
+
+        function loadChatMessages() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+            db.collection('chat').orderBy('createdAt').limit(50).get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const message = doc.data();
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'mb-2';
+                    messageElement.innerHTML = `
+                        <strong>${message.userName}:</strong> ${message.message}
+                    `;
+                    chatMessages.appendChild(messageElement);
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+    </script>
+</body>
+</html>
