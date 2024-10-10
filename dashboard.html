@@ -58,7 +58,7 @@
                     <h3 class="text-xl font-semibold mb-4 text-gray-800">Upload a New Project</h3>
                     <input type="text" id="projectTitle" placeholder="Project Title" class="w-full p-2 mb-4 border rounded" required>
                     <textarea id="projectDescription" placeholder="Project Description" class="w-full p-2 mb-4 border rounded" required></textarea>
-                    <div id="drop-area" class="file-drop-area">
+                    <div id="drop-area" class="file-drop-area" role="button" aria-label="Drag and drop files here or click to select files">
                         <p>Drag & drop files here or click to select files</p>
                         <input type="file" id="fileElem" multiple accept="image/*,application/pdf,video/*" class="hidden">
                     </div>
@@ -69,12 +69,22 @@
                     <h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>
                     <!-- Projects will be dynamically added here -->
                 </div>
-            </div>
-            <div>
-                <div id="chatTab" class="bg-white p-4 md:p-6 rounded-lg shadow-lg">
+
+                <div id="commentsSection" class="bg-white p-4 md:p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Comments</h3>
+                    <div id="commentList"></div>
+                    <form id="commentForm" class="flex mt-4">
+                        <input type="text" id="commentInput" placeholder="Add a comment..." class="flex-grow p-2 border rounded-l" required>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r">Comment</button>
+                    </form>
+                </div>
+
+                <div id="chatTab" class="bg-white p-4 md:p-6 rounded-lg shadow-lg mt-8">
                     <h3 class="text-xl font-semibold mb-4 text-gray-800">MBA Chat</h3>
                     <div id="chatMessages" class="h-64 overflow-y-auto mb-4 p-2 bg-gray-100 rounded"></div>
                     <form id="chatForm" class="flex">
+                        <input type="file" id="chatFileElem" multiple accept="image/*,application/pdf,video/*" class="hidden">
+                        <button type="button" id="attachFileButton" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-l">Attach File</button>
                         <input type="text" id="chatInput" placeholder="Type a message..." class="flex-grow p-2 border rounded-l" required>
                         <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r">Send</button>
                     </form>
@@ -88,7 +98,7 @@
     </footer>
 
     <script>
-        // Initialize Firebase with your Firebase config
+        // Initialize Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCq_7veQgwnqAG0NrqulIlpwPRc3YphhWY",
             authDomain: "chatting-app-288b2.firebaseapp.com",
@@ -99,7 +109,6 @@
             measurementId: "G-D174VGEPCM"
         };
         firebase.initializeApp(firebaseConfig);
-
         const auth = firebase.auth();
         const db = firebase.firestore();
         const signOutButton = document.getElementById('signOutButton');
@@ -128,32 +137,31 @@
         const dropArea = document.getElementById('drop-area');
         const fileElem = document.getElementById('fileElem');
 
+        // Drag & Drop functionality
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropArea.addEventListener(eventName, preventDefaults, false);
         });
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        dropArea.addEventListener('drop', handleDrop, false);
+        dropArea.addEventListener('click', () => fileElem.click());
 
         function preventDefaults(e) {
             e.preventDefault();
             e.stopPropagation();
         }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, highlight, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, unhighlight, false);
-        });
-
-        function highlight(e) {
+        function highlight() {
             dropArea.classList.add('is-active');
         }
 
-        function unhighlight(e) {
+        function unhighlight() {
             dropArea.classList.remove('is-active');
         }
-
-        dropArea.addEventListener('drop', handleDrop, false);
 
         function handleDrop(e) {
             const dt = e.dataTransfer;
@@ -161,88 +169,122 @@
             handleFiles(files);
         }
 
-        function handleFiles(files) {
-            ([...files]).forEach(uploadFile);
-        }
-
-        function uploadFile(file) {
-            // Simulate file upload
-            console.log(`Uploading file: ${file.name}`);
-        }
-
-        dropArea.addEventListener('click', () => fileElem.click());
-        fileElem.addEventListener('change', () => {
+        fileElem.addEventListener('change', (e) => {
             handleFiles(fileElem.files);
         });
 
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        function handleFiles(files) {
+            const fileArray = Array.from(files);
+            // Proceed to upload files and save project details
+            console.log(fileArray);
+        }
+
+        const uploadForm = document.getElementById('uploadForm');
+        uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const title = document.getElementById('projectTitle').value;
             const description = document.getElementById('projectDescription').value;
-            addProject(title, description);
-            this.reset();
+            const files = fileElem.files;
+
+            const projectRef = await db.collection('projects').add({
+                title,
+                description,
+                userId: currentUser.uid,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            await uploadFiles(projectRef.id, files);
+            uploadForm.reset();
+            loadProjects();
         });
 
-        document.getElementById('chatForm').addEventListener('submit', function(e) {
+        async function uploadFiles(projectId, files) {
+            const storageRef = firebase.storage().ref();
+            for (const file of files) {
+                const fileRef = storageRef.child(`projects/${projectId}/${file.name}`);
+                await fileRef.put(file);
+            }
+        }
+
+        async function loadProjects() {
+            const projectList = document.getElementById('projectList');
+            projectList.innerHTML = '';
+            const snapshot = await db.collection('projects').orderBy('timestamp', 'desc').get();
+            snapshot.forEach(doc => {
+                const project = doc.data();
+                const projectItem = document.createElement('div');
+                projectItem.classList.add('mb-4', 'p-4', 'bg-gray-100', 'rounded-lg');
+                projectItem.innerHTML = `
+                    <h4 class="font-bold">${project.title}</h4>
+                    <p>${project.description}</p>
+                    <p class="text-gray-600">Uploaded by: ${project.userId}</p>
+                `;
+                projectList.appendChild(projectItem);
+            });
+        }
+
+        const commentForm = document.getElementById('commentForm');
+        commentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const comment = document.getElementById('commentInput').value;
+            await db.collection('comments').add({
+                text: comment,
+                userId: currentUser.uid,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('commentInput').value = '';
+            loadComments();
+        });
+
+        async function loadComments() {
+            const commentList = document.getElementById('commentList');
+            commentList.innerHTML = '';
+            const snapshot = await db.collection('comments').orderBy('timestamp', 'desc').get();
+            snapshot.forEach(doc => {
+                const comment = doc.data();
+                const commentItem = document.createElement('div');
+                commentItem.innerHTML = `<strong>${comment.userId}:</strong> ${comment.text}`;
+                commentList.appendChild(commentItem);
+            });
+        }
+
+        const chatForm = document.getElementById('chatForm');
+        chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const message = document.getElementById('chatInput').value;
-            addChatMessage(currentUser.displayName, message);
-            this.reset();
+            await db.collection('chat').add({
+                text: message,
+                userId: currentUser.uid,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('chatInput').value = '';
+            loadChatMessages();
         });
 
-        function addProject(title, description) {
-            db.collection('projects').add({
-                title: title,
-                description: description,
-                userId: currentUser.uid,
-                userName: currentUser.displayName,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                loadProjects();
-            });
-        }
-
-        function loadProjects() {
-            const projectList = document.getElementById('projectList');
-            projectList.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>'; // Reset project list
-            db.collection('projects').orderBy('createdAt', 'desc').limit(5).onSnapshot(snapshot => {
-                snapshot.forEach(doc => {
-                    const project = doc.data();
-                    const projectItem = document.createElement('div');
-                    projectItem.classList.add('border-b', 'pb-2', 'mb-2');
-                    projectItem.innerHTML = `
-                        <h4 class="font-semibold">${project.title}</h4>
-                        <p>${project.description}</p>
-                        <small class="text-gray-600">Uploaded by ${project.userName}</small>
-                    `;
-                    projectList.appendChild(projectItem);
-                });
-            });
-        }
-
-        function loadChatMessages() {
+        async function loadChatMessages() {
             const chatMessages = document.getElementById('chatMessages');
             chatMessages.innerHTML = '';
-            db.collection('chatMessages').orderBy('createdAt').onSnapshot(snapshot => {
-                chatMessages.innerHTML = ''; // Clear previous messages
-                snapshot.forEach(doc => {
-                    const message = doc.data();
-                    const messageItem = document.createElement('div');
-                    messageItem.classList.add('mb-2');
-                    messageItem.innerHTML = `<strong>${message.userName}</strong>: ${message.text}`;
-                    chatMessages.appendChild(messageItem);
-                    chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to the bottom
-                });
+            const snapshot = await db.collection('chat').orderBy('timestamp', 'desc').get();
+            snapshot.forEach(doc => {
+                const chatMessage = doc.data();
+                const messageItem = document.createElement('div');
+                messageItem.innerHTML = `<strong>${chatMessage.userId}:</strong> ${chatMessage.text}`;
+                chatMessages.appendChild(messageItem);
             });
         }
 
-        function addChatMessage(userName, text) {
-            db.collection('chatMessages').add({
-                userId: currentUser.uid,
-                userName: userName,
-                text: text,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+        document.getElementById('attachFileButton').addEventListener('click', () => {
+            document.getElementById('chatFileElem').click();
+        });
+
+        document.getElementById('chatFileElem').addEventListener('change', (e) => {
+            const files = e.target.files;
+            handleChatFiles(files);
+        });
+
+        function handleChatFiles(files) {
+            // Implement file handling for chat messages
+            console.log(files);
         }
     </script>
 </body>
