@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,12 +12,19 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <style>
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
+
         .animate-fadeIn {
             animation: fadeIn 0.5s ease-out;
         }
+
         .file-drop-area {
             border: 2px dashed #ccc;
             border-radius: 20px;
@@ -25,241 +33,240 @@
             margin: 20px auto;
             padding: 20px;
         }
+
         .file-drop-area.is-active {
             background-color: #f7fafc;
             border-color: #4299e1;
         }
-        /* Responsive styles */
-        @media (max-width: 640px) {
-            body {
-                font-size: 0.875rem; /* Smaller text size */
-            }
-            .menu {
-                display: none;
-            }
-            .menu-button {
-                display: block;
-            }
+
+        .icon-btn {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .icon-btn:hover {
+            transform: scale(1.1);
         }
     </style>
 </head>
+
 <body class="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 p-4 md:p-8">
     <header class="mb-8">
         <nav class="flex justify-between items-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-indigo-700 animate-fadeIn">MBA Hub Dashboard</h1>
-            <button id="menuButton" class="menu-button bg-gray-200 p-2 rounded-full hover:bg-gray-300 transition duration-300">
-                &#9776; <!-- Three-line menu icon -->
-            </button>
-            <button id="signOutButton" class="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition duration-300 hidden md:block">Sign Out</button>
+            <h1 class="text-2xl md:text-3xl font-bold text-indigo-700 animate-fadeIn">MBA Hub Dashboard</h1>
+            <button id="signOutButton"
+                class="bg-red-500 text-white px-3 py-1 text-sm rounded-full hover:bg-red-600 transition duration-300">Sign
+                Out</button>
         </nav>
-        <div id="menu" class="menu hidden absolute right-4 bg-white rounded-lg shadow-lg p-4 mt-2">
-            <ul>
-                <li><button id="chatButton" class="block w-full text-left py-2">Chat</button></li>
-                <li><button id="projectsButton" class="block w-full text-left py-2">Projects</button></li>
-                <li><button id="aboutButton" class="block w-full text-left py-2">About</button></li>
-                <li><button id="signOutButtonMobile" class="block w-full text-left py-2 text-red-500">Sign Out</button></li>
-            </ul>
-        </div>
     </header>
 
     <main id="mainContent" class="animate-fadeIn">
-        <div class="bg-white p-4 md:p-6 rounded-lg shadow-lg mb-8">
+        <div class="bg-white p-3 md:p-6 rounded-lg shadow-lg mb-6">
             <div class="flex items-center mb-4">
-                <img id="userPhoto" src="/placeholder.svg" alt="Profile" class="w-12 h-12 md:w-16 md:h-16 rounded-full mr-4">
+                <img id="userPhoto" src="/placeholder.svg" alt="Profile"
+                    class="w-10 h-10 md:w-14 md:h-14 rounded-full mr-3">
                 <div>
-                    <h2 id="userName" class="text-xl md:text-2xl font-semibold text-gray-800">Loading...</h2>
-                    <p class="text-gray-600">Welcome to your MBA Hub dashboard!</p>
+                    <h2 id="userName" class="text-lg md:text-xl font-semibold text-gray-800">Loading...</h2>
+                    <p class="text-gray-600 text-sm">Welcome to your MBA Hub dashboard!</p>
                 </div>
             </div>
-            <p class="text-gray-700">
-                Share your projects, PDFs, pictures, and videos with your fellow MBA students. Collaborate and innovate together!
+            <p class="text-gray-700 text-sm md:text-base">
+                Share your projects, PDFs, pictures, and videos with your fellow MBA students. Collaborate and innovate
+                together!
             </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div class="col-span-1 md:col-span-2">
-                <form id="uploadForm" class="bg-white p-4 md:p-6 rounded-lg shadow-lg mb-8">
-                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Upload a New Project</h3>
-                    <input type="text" id="projectTitle" placeholder="Project Title" class="w-full p-2 mb-4 border rounded" required>
-                    <textarea id="projectDescription" placeholder="Project Description" class="w-full p-2 mb-4 border rounded" required></textarea>
+                <form id="uploadForm" class="bg-white p-3 md:p-6 rounded-lg shadow-lg mb-6">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Upload a New Project</h3>
+                    <input type="text" id="projectTitle" placeholder="Project Title"
+                        class="w-full p-2 mb-3 text-sm border rounded" required>
+                    <textarea id="projectDescription" placeholder="Project Description"
+                        class="w-full p-2 mb-3 text-sm border rounded" required></textarea>
                     <div id="drop-area" class="file-drop-area">
-                        <p>Drag & drop files here or click to select files</p>
+                        <p class="text-sm">Drag & drop files here or click to select files</p>
                         <input type="file" id="fileElem" multiple accept="image/*,application/pdf,video/*" class="hidden">
                     </div>
-                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 transition duration-300 mt-4">Upload Project</button>
+                    <button type="submit"
+                        class="bg-green-500 text-white px-4 py-2 text-sm rounded-full hover:bg-green-600 transition duration-300 mt-4">Upload
+                        Project</button>
                 </form>
 
-                <div id="projectList" class="bg-white p-4 md:p-6 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>
+                <div id="projectList" class="bg-white p-3 md:p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Recent Projects</h3>
                     <!-- Projects will be dynamically added here -->
                 </div>
             </div>
             <div>
-                <div id="chatTab" class="bg-white p-4 md:p-6 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-4 text-gray-800">MBA Chat</h3>
-                    <div id="chatMessages" class="h-64 overflow-y-auto mb-4 p-2 bg-gray-100 rounded"></div>
+                <div id="chatTab" class="bg-white p-3 md:p-6 rounded-lg shadow-lg relative">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">MBA Chat</h3>
+                    <div id="chatMessages" class="h-64 overflow-y-auto mb-3 p-2 bg-gray-100 rounded text-sm"></div>
                     <form id="chatForm" class="flex">
-                        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-grow p-2 border rounded-l" required>
+                        <input type="text" id="chatInput" placeholder="Type a message..."
+                            class="flex-grow p-2 border rounded-l text-sm" required>
                         <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r">Send</button>
                     </form>
+                    <div class="absolute top-3 right-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 icon-btn" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" id="chatIcon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 10h4l3-3 3 3h4M3 14h4l3 3 3-3h4" />
+                        </svg>
+                    </div>
+                </div>
+                <div id="projectIconTab" class="bg-white p-3 md:p-6 rounded-lg shadow-lg relative mt-6">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Projects</h3>
+                    <div class="absolute top-3 right-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 icon-btn" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" id="projectIcon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8c.45 0 .88.11 1.26.29a4.5 4.5 0 011.26-.29m-6.02.01A4.5 4.5 0 0112 8M12 12v1M12 16h.01" />
+                        </svg>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <footer class="mt-8 text-center text-gray-600">
+    <footer class="mt-6 text-center text-gray-600 text-xs">
         <p>&copy; 2024 Anamika Ranjan. All rights reserved.</p>
     </footer>
 
-<script>
-    // Firebase configuration
-    const firebaseConfig = {
-        apiKey: "AIzaSyCq_7veQgwnqAG0NrqulIlpwPRc3YphhWY",
-        authDomain: "chatting-app-288b2.firebaseapp.com",
-        projectId: "chatting-app-288b2",
-        storageBucket: "chatting-app-288b2.appspot.com",
-        messagingSenderId: "17814759833",
-        appId: "1:17814759833:web:647a3845c72290b0810b08",
-        measurementId: "G-D174VGEPCM"
-    };
-    firebase.initializeApp(firebaseConfig);
+    <script>
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyCq_7veQgwnqAG0NrqulIlpwPRc3YphhWY",
+            authDomain: "chatting-app-288b2.firebaseapp.com",
+            projectId: "chatting-app-288b2",
+            storageBucket: "chatting-app-288b2.appspot.com",
+            messagingSenderId: "17814759833",
+            appId: "1:17814759833:web:647a3845c72290b0810b08",
+            measurementId: "G-D174VGEPCM"
+        };
+        firebase.initializeApp(firebaseConfig);
 
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const signOutButton = document.getElementById('signOutButton');
-    const userPhoto = document.getElementById('userPhoto');
-    const userName = document.getElementById('userName');
-    let currentUser = null;
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const signOutButton = document.getElementById('signOutButton');
+        const userPhoto = document.getElementById('userPhoto');
+        const userName = document.getElementById('userName');
+        let currentUser = null;
 
-    signOutButton.addEventListener('click', () => {
-        auth.signOut().then(() => {
-            window.location.href = 'index.html';
-        });
-    });
-
-    document.getElementById('signOutButtonMobile').addEventListener('click', () => {
-        auth.signOut().then(() => {
-            window.location.href = 'index.html';
-        });
-    });
-
-    document.getElementById('menuButton').addEventListener('click', () => {
-        const menu = document.getElementById('menu');
-        menu.classList.toggle('hidden');
-    });
-
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            currentUser = user;
-            userPhoto.src = user.photoURL || '/placeholder.svg';
-            userName.textContent = user.displayName || 'MBA Student';
-            loadProjects();
-            loadChatMessages();
-        } else {
-            window.location.href = 'index.html';
-        }
-    });
-
-    // Load projects and chat messages
-    function loadProjects() {
-        const projectList = document.getElementById('projectList');
-        projectList.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>';
-        
-        db.collection('projects').orderBy('createdAt', 'desc').limit(5).onSnapshot((snapshot) => {
-            projectList.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>';
-            snapshot.forEach((doc) => {
-                const project = doc.data();
-                const projectItem = document.createElement('div');
-                projectItem.classList.add('border-b', 'pb-2', 'mb-2');
-                projectItem.innerHTML = `
-                    <h4 class="font-bold">${project.title}</h4>
-                    <p>${project.description}</p>
-                `;
-                projectList.appendChild(projectItem);
+        signOutButton.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                window.location.href = 'index.html';
             });
         });
-    }
 
-    function loadChatMessages() {
-        const chatMessages = document.getElementById('chatMessages');
-        chatMessages.innerHTML = '';
-
-        db.collection('chat').orderBy('timestamp').onSnapshot((snapshot) => {
-            chatMessages.innerHTML = '';
-            snapshot.forEach((doc) => {
-                const message = doc.data();
-                const messageItem = document.createElement('div');
-                messageItem.innerHTML = `<strong>${message.userName}</strong>: ${message.text}`;
-                chatMessages.appendChild(messageItem);
-            });
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                userPhoto.src = user.photoURL || '/placeholder.svg';
+                userName.textContent = user.displayName || 'MBA Student';
+                loadProjects();
+                loadChatMessages();
+            } else {
+                window.location.href = 'index.html';
+            }
         });
-    }
 
-    // Chat functionality
-    document.getElementById('chatForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const messageText = document.getElementById('chatInput').value;
-        if (messageText && currentUser) {
-            db.collection('chat').add({
-                userName: currentUser.displayName || 'Anonymous',
-                text: messageText,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            }).then(() => {
-                document.getElementById('chatInput').value = '';
-            });
-        }
-    });
-
-    // Project upload functionality
-    document.getElementById('uploadForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const title = document.getElementById('projectTitle').value;
-        const description = document.getElementById('projectDescription').value;
-        const files = document.getElementById('fileElem').files;
-
-        if (files.length > 0) {
-            const promises = [];
-            Array.from(files).forEach(file => {
-                const storageRef = firebase.storage().ref(`projects/${file.name}`);
-                promises.push(storageRef.put(file).then(snapshot => snapshot.ref.getDownloadURL()));
-            });
-
-            Promise.all(promises).then(urls => {
-                db.collection('projects').add({
-                    title,
-                    description,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    files: urls,
+        // Realtime listener for projects
+        function loadProjects() {
+            const projectList = document.getElementById('projectList');
+            projectList.innerHTML = ''; // Clear existing projects
+            db.collection('projects').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+                snapshot.forEach(doc => {
+                    const project = doc.data();
+                    const projectDiv = document.createElement('div');
+                    projectDiv.className = 'p-2 mb-2 border-b';
+                    projectDiv.innerHTML = `<strong>${project.title}</strong><br>${project.description}`;
+                    projectList.appendChild(projectDiv);
                 });
-                document.getElementById('uploadForm').reset();
             });
         }
-    });
 
-    // File drop functionality
-    let dropArea = document.getElementById('drop-area');
-    dropArea.addEventListener('click', () => {
-        document.getElementById('fileElem').click();
-    });
-
-    dropArea.addEventListener('dragover', (event) => {
-        event.preventDefault();
-        dropArea.classList.add('is-active');
-    });
-
-    dropArea.addEventListener('dragleave', () => {
-        dropArea.classList.remove('is-active');
-    });
-
-    dropArea.addEventListener('drop', (event) => {
-        event.preventDefault();
-        dropArea.classList.remove('is-active');
-        const files = event.dataTransfer.files;
-        if (files.length) {
-            document.getElementById('fileElem').files = files;
+        // Realtime listener for chat messages
+        function loadChatMessages() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = ''; // Clear existing messages
+            db.collection('chatMessages').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+                snapshot.forEach(doc => {
+                    const message = doc.data();
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'mb-2';
+                    messageDiv.innerHTML = `<strong>${message.sender}</strong>: ${message.text}`;
+                    chatMessages.appendChild(messageDiv);
+                });
+            });
         }
-    });
-</script>
+
+        // Handle project upload
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('projectTitle').value;
+            const description = document.getElementById('projectDescription').value;
+            const files = document.getElementById('fileElem').files;
+            const storageRef = firebase.storage().ref();
+
+            // Upload files
+            for (const file of files) {
+                const fileRef = storageRef.child(`projects/${file.name}`);
+                await fileRef.put(file);
+            }
+
+            // Save project data to Firestore
+            await db.collection('projects').add({
+                title: title,
+                description: description,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                userId: currentUser.uid
+            });
+
+            document.getElementById('uploadForm').reset();
+        });
+
+        // Handle chat message submission
+        document.getElementById('chatForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const chatInput = document.getElementById('chatInput');
+            await db.collection('chatMessages').add({
+                text: chatInput.value,
+                sender: currentUser.displayName || 'Anonymous',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            chatInput.value = ''; // Clear input
+        });
+
+        // Drag and drop file handling
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('fileElem');
+
+        dropArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            dropArea.classList.remove('is-active');
+            // Handle files selection
+        });
+
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.classList.add('is-active');
+        });
+
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('is-active');
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('is-active');
+            const files = e.dataTransfer.files;
+            // Handle dropped files
+        });
+    </script>
 </body>
+
 </html>
