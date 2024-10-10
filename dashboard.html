@@ -88,14 +88,15 @@
     </footer>
 
     <script>
-        // Initialize Firebase (replace with your own config)
+        // Initialize Firebase with your Firebase config
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyCq_7veQgwnqAG0NrqulIlpwPRc3YphhWY",
+            authDomain: "chatting-app-288b2.firebaseapp.com",
+            projectId: "chatting-app-288b2",
+            storageBucket: "chatting-app-288b2.appspot.com",
+            messagingSenderId: "17814759833",
+            appId: "1:17814759833:web:647a3845c72290b0810b08",
+            measurementId: "G-D174VGEPCM"
         };
         firebase.initializeApp(firebaseConfig);
 
@@ -128,7 +129,6 @@
         const fileElem = document.getElementById('fileElem');
 
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            
             dropArea.addEventListener(eventName, preventDefaults, false);
         });
 
@@ -204,83 +204,44 @@
 
         function loadProjects() {
             const projectList = document.getElementById('projectList');
-            projectList.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>';
-            
-            db.collection('projects').orderBy('createdAt', 'desc').limit(5).get().then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
+            projectList.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Projects</h3>'; // Reset project list
+            db.collection('projects').orderBy('createdAt', 'desc').limit(5).onSnapshot(snapshot => {
+                snapshot.forEach(doc => {
                     const project = doc.data();
-                    const projectElement = document.createElement('div');
-                    projectElement.className = 'bg-gray-100 p-4 rounded-lg mb-4 animate-fadeIn';
-                    projectElement.innerHTML = `
-                        <h4 class="text-lg font-semibold text-gray-800">${project.title}</h4>
-                        <p class="text-gray-600 mb-2">${project.description}</p>
-                        <p class="text-sm text-gray-500">Posted by ${project.userName}</p>
-                        <div class="mt-2">
-                            <textarea class="w-full p-2 border rounded" placeholder="Add a comment"></textarea>
-                            <button onclick="addComment('${doc.id}')" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded">Comment</button>
-                        </div>
-                        <div class="comments mt-4"></div>
+                    const projectItem = document.createElement('div');
+                    projectItem.classList.add('border-b', 'pb-2', 'mb-2');
+                    projectItem.innerHTML = `
+                        <h4 class="font-semibold">${project.title}</h4>
+                        <p>${project.description}</p>
+                        <small class="text-gray-600">Uploaded by ${project.userName}</small>
                     `;
-                    projectList.appendChild(projectElement);
-                    loadComments(doc.id, projectElement.querySelector('.comments'));
+                    projectList.appendChild(projectItem);
                 });
-            });
-        }
-
-        function addComment(projectId) {
-            const projectElement = document.querySelector(`[data-project-id="${projectId}"]`);
-            const commentText = projectElement.querySelector('textarea').value;
-            
-            db.collection('projects').doc(projectId).collection('comments').add({
-                text: commentText,
-                userId: currentUser.uid,
-                userName: currentUser.displayName,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                projectElement.querySelector('textarea').value = '';
-                loadComments(projectId, projectElement.querySelector('.comments'));
-            });
-        }
-
-        function loadComments(projectId, commentsElement) {
-            commentsElement.innerHTML = '';
-            db.collection('projects').doc(projectId).collection('comments').orderBy('createdAt').get().then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    const comment = doc.data();
-                    const commentElement = document.createElement('div');
-                    commentElement.className = 'bg-white p-2 rounded mt-2';
-                    commentElement.innerHTML = `
-                        <p class="text-sm"><strong>${comment.userName}:</strong> ${comment.text}</p>
-                    `;
-                    commentsElement.appendChild(commentElement);
-                });
-            });
-        }
-
-        function addChatMessage(userName, message) {
-            db.collection('chat').add({
-                userName: userName,
-                message: message,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                loadChatMessages();
             });
         }
 
         function loadChatMessages() {
             const chatMessages = document.getElementById('chatMessages');
             chatMessages.innerHTML = '';
-            db.collection('chat').orderBy('createdAt').limit(50).get().then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
+            db.collection('chatMessages').orderBy('createdAt').onSnapshot(snapshot => {
+                chatMessages.innerHTML = ''; // Clear previous messages
+                snapshot.forEach(doc => {
                     const message = doc.data();
-                    const messageElement = document.createElement('div');
-                    messageElement.className = 'mb-2';
-                    messageElement.innerHTML = `
-                        <strong>${message.userName}:</strong> ${message.message}
-                    `;
-                    chatMessages.appendChild(messageElement);
+                    const messageItem = document.createElement('div');
+                    messageItem.classList.add('mb-2');
+                    messageItem.innerHTML = `<strong>${message.userName}</strong>: ${message.text}`;
+                    chatMessages.appendChild(messageItem);
+                    chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to the bottom
                 });
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+
+        function addChatMessage(userName, text) {
+            db.collection('chatMessages').add({
+                userId: currentUser.uid,
+                userName: userName,
+                text: text,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         }
     </script>
